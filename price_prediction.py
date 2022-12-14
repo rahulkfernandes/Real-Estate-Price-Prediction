@@ -6,6 +6,8 @@ import matplotlib
 from sklearn.model_selection import train_test_split, ShuffleSplit, cross_val_score, GridSearchCV
 from sklearn.linear_model import LinearRegression, Lasso, OrthogonalMatchingPursuit, ElasticNet
 from sklearn.tree import DecisionTreeRegressor
+import pickle
+from datetime import datetime
 
 matplotlib.rcParams["figure.figsize"] = (20,10)
 
@@ -80,11 +82,11 @@ def feature_engg(df):
     df['location'] = df['location'].apply(lambda x: 'other' if x in location_stats[location_stats<=10] else x)
     
     # Outlier Removal
-    df = df[~(df['total_sqft']/df['bhk']<300)] # 300sqft is min size of bedroom 
+    df = df[~(df['total_sqft']/df['bhk']<300)] # Assumed 300sqft is min size of bedroom 
     df = rm_pps_outliers(df)
     #plot_scatter_plot(df, "Hebbal")
     df = rm_bhk_outlisers(df)
-    df = df[df['bath']<df['bhk']+2]
+    df = df[df['bath']<df['bhk']+2]            # Assumed that a house will not have more than (no. of bedrooms+2) bathrooms
     #plot_hist(df['price_per_sqft'],'Price Per Square Feet Frequency','Price Per Square Feet')
     df.drop(['size','price_per_sqft'],axis='columns', inplace=True)
     return df
@@ -162,15 +164,18 @@ if __name__ == "__main__":
     dep_variables = dataset['price'] 
     # scores_df = best_model_search(ind_variables, dep_variables)
     # print(scores_df)
-    print("Training Model, Please Wait")
+    print("Training Model, Please Wait....")
     X_train, X_test, y_train, y_test = train_test_split(ind_variables.values, dep_variables.values, test_size=0.2, random_state=23)
     lr_model = LinearRegression()
     lr_model.fit(X_train, y_train)
     score = lr_model.score(X_test, y_test)
     print(f"Model Score = {score}")
 
-    estimate = predict_price("Rajaji Nagar", 1250, 3, 2)
-    print(estimate)
+    date_time = datetime.now()
+    date = date_time.date()
+    with open(f'saved_model/bengaluru_home_price_model{date}.pkl', 'wb') as file:
+        pickle.dump(lr_model, file)
+    print("Model Saved!")
 
-
-
+    #estimate = predict_price("Indira Nagar", 1250, 3, 2)
+    #print(estimate)
