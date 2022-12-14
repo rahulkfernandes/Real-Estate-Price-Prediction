@@ -1,2 +1,4 @@
 model/bengaluru_house_data.csv
 model/saved_model/
+__pycache__
+server/artifacts
