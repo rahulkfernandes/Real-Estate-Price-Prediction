@@ -3,6 +3,9 @@ import numpy as np
 from matplotlib import pyplot as plt
 #%matplotlib inline
 import matplotlib
+from sklearn.model_selection import train_test_split, ShuffleSplit, cross_val_score, GridSearchCV
+from sklearn.linear_model import LinearRegression, Lasso, OrthogonalMatchingPursuit, ElasticNet
+from sklearn.tree import DecisionTreeRegressor
 
 matplotlib.rcParams["figure.figsize"] = (20,10)
 
@@ -49,8 +52,9 @@ def rm_bhk_outlisers(df):
                 exclude_indices = np.append(exclude_indices,bhk_df[bhk_df['price_per_sqft']<(stats['mean'])].index.values)
     return df.drop(exclude_indices, axis='index')
 
-def plot_hist(column, xlabel):
+def plot_hist(column,title,xlabel):
     plt.hist(column, rwidth=0.8)
+    plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel('Count')
     plt.show()
@@ -81,15 +85,92 @@ def feature_engg(df):
     #plot_scatter_plot(df, "Hebbal")
     df = rm_bhk_outlisers(df)
     df = df[df['bath']<df['bhk']+2]
-    plot_hist(df['price_per_sqft'], 'Price Per Square Feet')
+    #plot_hist(df['price_per_sqft'],'Price Per Square Feet Frequency','Price Per Square Feet')
     df.drop(['size','price_per_sqft'],axis='columns', inplace=True)
     return df
 
+def preprocessing(df):
+    dummies = pd.get_dummies(df['location'])
+    df = pd.concat([df,dummies.drop('other',axis='columns')], axis='columns')
+    df.drop('location', axis='columns', inplace=True)
+    return df
+
+
+def best_model_search(X, y):
+    print("Best Model Search Started, Please Wait.....")
+    algos = {
+        'linear_regression': {
+            'model': LinearRegression(),
+            'params': {
+                'positive': [True, False]
+            }
+        },
+        'orthogonal_matching_pursuit':{
+            'model': OrthogonalMatchingPursuit(),
+            'params': { 
+                'fit_intercept': [True, False],
+            }
+        },
+        'elastic_net': {
+            'model': ElasticNet(),
+            'params': {
+                'l1_ratio': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+                'fit_intercept': [True, False]
+            }
+        },
+        'lasso':{
+            'model': Lasso(),
+            'params': {
+                'alpha': [1,2],
+                'selection': ['random', 'cyclic']
+            }
+        },
+        'decision_tree': {
+            'model': DecisionTreeRegressor(),
+            'params': {
+                'criterion': ['friedman_mse', 'poisson', 'absolute_error', 'squared_error'],
+                'splitter': ['best', 'random']
+            }
+        } 
+    }
+    scores = []
+    cv = ShuffleSplit(n_splits=5, test_size=0.2, random_state=23)
+    for algo_name, config in algos.items():
+        gs = GridSearchCV(config['model'], config['params'], cv=cv, return_train_score=False)
+        gs.fit(X, y)
+        scores.append({'model': algo_name, 'best_score': gs.best_score_, 'best_params': gs.best_params_})
+    return pd.DataFrame(scores, columns=['model', 'best_score', 'best_params'])
+
+def predict_price(location, sqft, bath, bhk):
+    loc_index = np.where(ind_variables.columns==location)[0][0]
+    x = np.zeros(len(ind_variables.columns))
+    x[0] = sqft
+    x[1] = bath
+    x[2] = bhk
+    if loc_index>=0:
+        x[loc_index] = 1
+    return lr_model.predict([x])[0]
 
 if __name__ == "__main__":
     dataset = load_data('bengaluru_house_data.csv')
+    print("Data Loaded!")
     dataset = feature_engg(dataset)
-    print(dataset.head())
-    
-    
-    
+    dataset = preprocessing(dataset)
+    print("Data Preprocessed")
+
+    ind_variables = dataset.drop('price', axis='columns')
+    dep_variables = dataset['price'] 
+    # scores_df = best_model_search(ind_variables, dep_variables)
+    # print(scores_df)
+    print("Training Model, Please Wait")
+    X_train, X_test, y_train, y_test = train_test_split(ind_variables.values, dep_variables.values, test_size=0.2, random_state=23)
+    lr_model = LinearRegression()
+    lr_model.fit(X_train, y_train)
+    score = lr_model.score(X_test, y_test)
+    print(f"Model Score = {score}")
+
+    estimate = predict_price("Rajaji Nagar", 1250, 3, 2)
+    print(estimate)
+
+
+
