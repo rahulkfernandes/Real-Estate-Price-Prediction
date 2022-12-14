@@ -8,6 +8,7 @@ from sklearn.linear_model import LinearRegression, Lasso, OrthogonalMatchingPurs
 from sklearn.tree import DecisionTreeRegressor
 import pickle
 from datetime import datetime
+import json
 
 matplotlib.rcParams["figure.figsize"] = (20,10)
 
@@ -173,9 +174,16 @@ if __name__ == "__main__":
 
     date_time = datetime.now()
     date = date_time.date()
+
     with open(f'saved_model/bengaluru_home_price_model{date}.pkl', 'wb') as file:
         pickle.dump(lr_model, file)
     print("Model Saved!")
 
+    columns = {
+        'data_columns': ind_variables.columns.tolist()
+    }
+    with open('saved_model/columns.json', 'w') as file:
+        file.write(json.dumps(columns))
+        file.close()
     #estimate = predict_price("Indira Nagar", 1250, 3, 2)
     #print(estimate)
