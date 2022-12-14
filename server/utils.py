@@ -24,7 +24,6 @@ def get_location_names():
     return __LOCATIONS
 
 def load_saved_artifacts():
-    print("Loading Saved Artifacts")
     global __DATA_COLUMNS
     global __LOCATIONS
     global __MODEL
@@ -33,13 +32,4 @@ def load_saved_artifacts():
         __LOCATIONS = __DATA_COLUMNS[3:]
     
     with open('./artifacts/bengaluru_home_price_model2022-12-14.pkl', 'rb') as f:
-        __MODEL = pickle.load(f)
-    print("Loaded Artifacts")
-
-if __name__ == "__main__":
-    load_saved_artifacts()
-    #print(get_location_names())
-    print(get_estimated_price('1st Phase JP Nagar',1000,3,2))
-    print(get_estimated_price('1st Phase JP Nagar',2000,2,2))
-    print(get_estimated_price('Ejipura',1000,2,2))
-    
+        __MODEL = pickle.load(f)   
