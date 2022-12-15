@@ -1,25 +1,12 @@
 import pandas as pd
 import numpy as np
-from matplotlib import pyplot as plt
-#%matplotlib inline
-import matplotlib
 from sklearn.model_selection import train_test_split, ShuffleSplit, cross_val_score, GridSearchCV
 from sklearn.linear_model import LinearRegression, Lasso, OrthogonalMatchingPursuit, ElasticNet
 from sklearn.tree import DecisionTreeRegressor
 import pickle
 from datetime import datetime
 import json
-
-matplotlib.rcParams["figure.figsize"] = (20,10)
-
-def convert_sqft_to_num(value):
-    tokens = value.split('-')
-    if len(tokens)==2:
-        return (float(tokens[0]) + float(tokens[1]))/2
-    try:
-        return float(value)
-    except:
-        return None
+from utils import *
 
 def load_data(path):
     # Data Cleaning
@@ -54,26 +41,7 @@ def rm_bhk_outlisers(df):
             if stats and stats['count']>5:
                 exclude_indices = np.append(exclude_indices,bhk_df[bhk_df['price_per_sqft']<(stats['mean'])].index.values)
     return df.drop(exclude_indices, axis='index')
-
-def plot_hist(column,title,xlabel):
-    plt.hist(column, rwidth=0.8)
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.ylabel('Count')
-    plt.show()
-
-def plot_scatter_plot(df, location):
-    bhk2 = df[(df['location']==location) & (df['bhk']==2)]
-    bhk3 = df[(df['location']==location) & (df['bhk']==3)]
-    #matplotlib.rcParams['figure.figsize'] = (15,10)
-    plt.scatter(bhk2['total_sqft'],bhk2['price'], color='blue',label='2 BHK', s=50)
-    plt.scatter(bhk3['total_sqft'],bhk3['price'],marker='+',color='green',label='3 BHK', s=50)
-    plt.xlabel("Total Square Feet Area")
-    plt.ylabel("Price")
-    plt.title(location)
-    plt.legend()
-    plt.show()
-    
+  
 def feature_engg(df):
     df['price_per_sqft'] = df['price']*100000/df['total_sqft']
     
@@ -97,7 +65,6 @@ def preprocessing(df):
     df = pd.concat([df,dummies.drop('other',axis='columns')], axis='columns')
     df.drop('location', axis='columns', inplace=True)
     return df
-
 
 def best_model_search(X, y):
     print("Best Model Search Started, Please Wait.....")
@@ -174,14 +141,11 @@ if __name__ == "__main__":
 
     date_time = datetime.now()
     date = date_time.date()
-
     with open(f'saved_model/bengaluru_home_price_model{date}.pkl', 'wb') as file:
         pickle.dump(lr_model, file)
     print("Model Saved!")
 
-    columns = {
-        'data_columns': ind_variables.columns.tolist()
-    }
+    columns = {'data_columns': ind_variables.columns.tolist()}
     with open('saved_model/columns.json', 'w') as file:
         file.write(json.dumps(columns))
         file.close()
